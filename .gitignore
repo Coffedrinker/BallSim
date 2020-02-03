@@ -1,1 +1,5 @@
 /bin/
+/.vs/
+/.vscode/
+.project
+.classpath
