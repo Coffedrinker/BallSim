@@ -6,7 +6,7 @@ import java.awt.event.ActionListener;
 
 import javax.swing.*;
 
-public class main {
+public class Ballsim {
 	
     private static void createAndShowGUI() {
         JFrame frame = new JFrame("Hello world");
