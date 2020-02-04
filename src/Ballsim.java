@@ -13,7 +13,7 @@ public class Ballsim {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         JLabel label = new JLabel("Hello world!");
-        JPanel mainPanel = new MyPanel();
+        MyPanel mainPanel = new MyPanel();
         frame.getContentPane().add(label);
         frame.setMinimumSize(new Dimension(500,200));
         frame.add(label);
@@ -22,6 +22,10 @@ public class Ballsim {
         
         
         frame.setVisible(true);
+        Thread physics = new Thread(mainPanel);
+        System.out.println("Starting thread");
+        physics.start();
+        
     } 
     public static void main(String[] args) {
         //Entry point
@@ -33,22 +37,61 @@ public class Ballsim {
         });
     }
 }
-class MyPanel extends JPanel implements ActionListener{
-	int ballX, ballY = 0;
+class MyPanel extends JPanel implements Runnable{
+	float ballX, ballY = 1f;
+	float ballVelocityX = 100f;//TODO: implementera som m/s |just nu pixlar/s
+	float ballVelocityY = 0f;
+	float gravity = 200f;
+	double timer, timeSinceLastFrame, startTime;
+	
+	private boolean running = true;
 	
 	public MyPanel(){
 		setMinimumSize(new Dimension(250, 250));
-		setBackground(Color.BLACK);
+		setBackground(Color.WHITE);
 	}
 	
-	
-	public void actionPerformed(ActionEvent e) {
-		
-	}
 	@Override
-	public void paintComponent(Graphics g){
+	public void paintComponents(Graphics g){
 		super.paintComponent(g);
-		
-		g.drawOval(ballX, ballY, 50, 50);
+//		System.out.println("Drawing");
+
+		g.drawOval((int) ballX, (int) ballY, 50, 50);
+	}
+	public synchronized void doStop(){
+		this.running = false;
+	}
+	public void run() {
+		// XXX: Physics thread
+		startTime = System.currentTimeMillis();
+		timer = System.currentTimeMillis();
+		while(this.running) {
+//			System.out.println("doing thread");
+			timeSinceLastFrame = System.currentTimeMillis() - timer;
+			timer = System.currentTimeMillis();
+			
+			ballVelocityY += (gravity*timeSinceLastFrame/1000);
+			
+			ballX += (ballVelocityX*timeSinceLastFrame/1000);
+			ballY += (ballVelocityY*timeSinceLastFrame/1000);
+			
+//			System.out.println(timeSinceLastFrame+"ms");
+			paintComponents(getGraphics());
+			
+			if (ballX >= this.getWidth()-50 || ballX < 0) {
+				ballVelocityX *= -1;
+				System.out.println(System.currentTimeMillis() - startTime +"ms");
+			}
+			if (ballY >= this.getHeight()-50) {
+				ballVelocityY *= -1;
+			}
+			try {
+				Thread.sleep(2L);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		System.out.println("Exiting panel thread");
 	}
 }
