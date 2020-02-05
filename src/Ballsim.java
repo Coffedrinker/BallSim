@@ -40,8 +40,8 @@ public class Ballsim {
 class MyPanel extends JPanel implements Runnable{
 	float ballX, ballY = 1f;
 	float ballVelocityX = 100f;//TODO: implementera som m/s |just nu pixlar/s
-	float ballVelocityY = 0f;
-	float gravity = 200f;
+	float ballVelocityY = -100f;
+	float gravity = 400f;
 	double timer, timeSinceLastFrame, startTime;
 	
 	private boolean running = true;
@@ -78,12 +78,18 @@ class MyPanel extends JPanel implements Runnable{
 //			System.out.println(timeSinceLastFrame+"ms");
 			paintComponents(getGraphics());
 			
-			if (ballX >= this.getWidth()-50 || ballX < 0) {
+			if (ballX > this.getWidth()-50 || ballX < 0) {
+				if (ballX > 50) {
+					ballX = this.getWidth() - 50;
+				} else {
+					ballX = 0f;
+				}
 				ballVelocityX *= -1;
 				System.out.println(System.currentTimeMillis() - startTime +"ms");
 			}
-			if (ballY >= this.getHeight()-50) {
-				ballVelocityY *= -1;
+			if (ballY > this.getHeight()-50) {
+				ballVelocityY *= -0.99;
+				ballY = this.getHeight()-50;
 			}
 			try {
 				Thread.sleep(2L);
