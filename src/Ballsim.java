@@ -39,10 +39,12 @@ public class Ballsim {
 }
 class MyPanel extends JPanel implements Runnable{
 	float ballX, ballY = 1f;
-	float ballVelocityX = 100f;//TODO: implementera som m/s |just nu pixlar/s
+	float ballVelocityX = 100f;//TODO: implementera som m/s | just nu pixlar/s
 	float ballVelocityY = -100f;
 	float gravity = 400f;
-	double timer, timeSinceLastFrame, startTime;
+	float studsKoeff = 0.9f;
+	long timer, timeSinceLastFrame, startTime;
+	int fps, accumulator = 0;
 	
 	private boolean running = true;
 	
@@ -52,11 +54,12 @@ class MyPanel extends JPanel implements Runnable{
 	}
 	
 	@Override
-	public void paintComponents(Graphics g){
+	public void paintComponent(Graphics g){
 		super.paintComponent(g);
 //		System.out.println("Drawing");
 
 		g.drawOval((int) ballX, (int) ballY, 50, 50);
+		fps ++;
 	}
 	public synchronized void doStop(){
 		this.running = false;
@@ -75,8 +78,11 @@ class MyPanel extends JPanel implements Runnable{
 			ballX += (ballVelocityX*timeSinceLastFrame/1000);
 			ballY += (ballVelocityY*timeSinceLastFrame/1000);
 			
+			
 //			System.out.println(timeSinceLastFrame+"ms");
-			paintComponents(getGraphics());
+//			paintComponent(getGraphics());
+			revalidate();
+			repaint();
 			
 			if (ballX > this.getWidth()-50 || ballX < 0) {
 				if (ballX > 50) {
@@ -88,11 +94,17 @@ class MyPanel extends JPanel implements Runnable{
 				System.out.println(System.currentTimeMillis() - startTime +"ms");
 			}
 			if (ballY > this.getHeight()-50) {
-				ballVelocityY *= -0.99;
+				ballVelocityY *= -studsKoeff;
 				ballY = this.getHeight()-50;
 			}
 			try {
-				Thread.sleep(2L);
+				accumulator += timeSinceLastFrame;
+				if (accumulator > 1000){
+					System.out.println(fps +" | "+ 1000/timeSinceLastFrame);
+					accumulator = 0;
+					fps=0;
+				}
+				Thread.sleep(15); // lag simulering, om tid mellan rutor är < 1 ms så blinkar grafiken
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
