@@ -1,6 +1,7 @@
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -15,7 +16,7 @@ public class Ballsim {
         JLabel label = new JLabel("Hello world!");
         MyPanel mainPanel = new MyPanel();
         frame.getContentPane().add(label);
-        frame.setMinimumSize(new Dimension(500,200));
+        frame.setMinimumSize(new Dimension(900,600));
         frame.add(label);
         frame.add(mainPanel);
 //        frame.pack();
@@ -37,15 +38,23 @@ public class Ballsim {
         });
     }
 }
+class Obstacle extends Rectangle{
+	public Obstacle() {
+		// TODO Auto-generated constructor stub
+		
+	}
+}
 class MyPanel extends JPanel implements Runnable{
+	//1000f = 1m
 	float ballX, ballY = 1f;
 	float ballVelocityX = 100f;//TODO: implementera som m/s | just nu pixlar/s
-	float ballVelocityY = -100f;
-	float gravity = 400f;
-	float studsKoeff = 0.9f;
+	float ballVelocityY = 0;
+	float gravity = 9800f;
+	float studsKoeff = 0.6f;
+	
 	long timer, timeSinceLastFrame, startTime;
 	int fps, accumulator = 0;
-	
+	int ballSize = 20;
 	private boolean running = true;
 	
 	public MyPanel(){
@@ -57,8 +66,7 @@ class MyPanel extends JPanel implements Runnable{
 	public void paintComponent(Graphics g){
 		super.paintComponent(g);
 //		System.out.println("Drawing");
-
-		g.drawOval((int) ballX, (int) ballY, 50, 50);
+		g.drawOval((int) ballX, (int) ballY, ballSize, ballSize);
 		fps ++;
 	}
 	public synchronized void doStop(){
@@ -84,18 +92,18 @@ class MyPanel extends JPanel implements Runnable{
 			revalidate();
 			repaint();
 			
-			if (ballX > this.getWidth()-50 || ballX < 0) {
-				if (ballX > 50) {
-					ballX = this.getWidth() - 50;
+			if (ballX > this.getWidth()-ballSize || ballX < 0) {
+				if (ballX > ballSize) {
+					ballX = this.getWidth() - ballSize;
 				} else {
 					ballX = 0f;
 				}
 				ballVelocityX *= -1;
 				System.out.println(System.currentTimeMillis() - startTime +"ms");
 			}
-			if (ballY > this.getHeight()-50) {
+			if (ballY > this.getHeight()-ballSize) {
 				ballVelocityY *= -studsKoeff;
-				ballY = this.getHeight()-50;
+				ballY = this.getHeight()-ballSize;
 			}
 			try {
 				accumulator += timeSinceLastFrame;
