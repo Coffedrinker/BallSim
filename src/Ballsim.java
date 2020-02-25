@@ -2,12 +2,14 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Point;
 import java.awt.Polygon;
 import java.awt.Rectangle;
 import java.awt.Shape;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.geom.Ellipse2D;
+import java.awt.geom.Point2D;
 import java.util.Vector;
 
 import javax.swing.*;
@@ -23,7 +25,7 @@ public class Ballsim {
         JLabel label = new JLabel("Hello world!");
         MyPanel mainPanel = new MyPanel();
         frame.getContentPane().add(label);
-        frame.setMinimumSize(new Dimension(300,200));
+        frame.setMinimumSize(new Dimension(300,400));
         frame.add(label);
         frame.add(mainPanel);
 //        frame.pack();
@@ -73,20 +75,16 @@ class Obstacle {
 	public Polygon getShape(){
 		return this.shape;
 	}
-	
 	private Polygon makeShape(){
 		int[] listX = {0,width, width,0}; 
 		int[] listY = {0,0,height, height};
-		if (rotation == 17) {
-			return new Polygon(listX,listY,4);
-		} else {
-			for (int i = 0; i < listY.length; i++) {
-				int[] newPoint = rotatePoint(listX[i], listY[i], rotation);
-				listX[i] = newPoint[0]+posX;
-				listY[i] = newPoint[1]+posY;
-			}
-			return new Polygon(listX, listY, 4);
+		
+		for (int i = 0; i < listY.length; i++) {
+			int[] newPoint = rotatePoint(listX[i], listY[i], rotation);
+			listX[i] = newPoint[0]+posX;
+			listY[i] = newPoint[1]+posY;
 		}
+		return new Polygon(listX, listY, 4);
 	}
 	
 	private int[] rotatePoint(int x, int y, double rot){
@@ -97,54 +95,62 @@ class Obstacle {
 		coords[1] = (int) (h*Math.sin(ang + Math.toRadians(rot)));
 		return coords;
 	}
+	public double getRotation(){
+		return rotation;
+	}
+	public void setRotation(double _rotation){
+		this.rotation = _rotation;
+		this.shape = makeShape();
+	}
 	public int getPosX() {
 		return posX;
 	}
-
 	public void setPosX(int posX) {
 		this.posX = posX;
-	}
-
-	public int getPosY() {
+	}	public int getPosY() {
 		return posY;
 	}
-
 	public void setPosY(int posY) {
 		this.posY = posY;
 	}
 }
 class MyPanel extends JPanel implements Runnable{
 	//1000f = 1m
-	float ballX, ballY = 1f;
-	float ballVelocityX = 100f;//TODO: implementera som m/s | just nu pixlar/s
+	float ballX, ballY = 10f;
+	float ballVelocityX = 100f;
 	float ballVelocityY = 0;
 	float gravity = 9800f;
-	float studsKoeff = 1f;
+	float studsKoeff = 0.4f;
+	float timeScale = 1f;
 	
 	long timer, timeSinceLastFrame, startTime;
 	int fps, accumulator = 0;
 	int ballSize = 20;
 	private boolean running = true;
-	Obstacle[] obstacles = new Obstacle[1];
+	Obstacle[] obstacles = new Obstacle[2];
 			
 	public MyPanel(){
 		setMinimumSize(new Dimension(250, 250));
 		setBackground(Color.WHITE);
 		
-		obstacles[0] = new Obstacle(0, 100, 60, 20, 60);
-		
+		obstacles[0] = new Obstacle(0, 100, 60, 20, 30);
+		obstacles[1] = new Obstacle(0, 129, 80, 200, 0);
 	}
 	
 	@Override
 	public void paintComponent(Graphics g){ 
 		super.paintComponent(g);
 //		System.out.println("Drawing");
-		g.fillOval((int) ballX, (int) ballY, ballSize, ballSize);
-		g.setColor(Color.YELLOW);
+		
+		g.setColor(Color.BLUE);
 		for (Obstacle obstacle : obstacles) {
 			g.fillPolygon(obstacle.getShape());
 //			System.out.println(obstacle.getShape().xpoints + " | "+obstacle.getShape().ypoints);
 		}
+		g.setColor(Color.GRAY);
+//		g.fillOval((int) ballX, (int) ballY, ballSize, ballSize);
+		
+		g.fillArc((int) ballX, (int) ballY, ballSize, ballSize, 0, 360);
 		fps ++;
 	}
 	public synchronized void doStop(){
@@ -154,21 +160,41 @@ class MyPanel extends JPanel implements Runnable{
 		// XXX: Physics thread
 		startTime = System.currentTimeMillis();
 		timer = System.currentTimeMillis();
+		
+		timeSinceLastFrame = 1;
+		
+		Point2D cp = new Point((int) ballX, (int) ballY); 
 		while(this.running) {
-//			System.out.println("doing thread");
-			timeSinceLastFrame = System.currentTimeMillis() - timer;
-			timer = System.currentTimeMillis();
+//			timeSinceLastFrame = System.currentTimeMillis() - timer;
+//			timer = System.currentTimeMillis();
+//			System.out.println(timer);
+			cp.setLocation((int) ballX + ballSize/2, (int) ballY + ballSize/2);
 			
-			ballVelocityY += (gravity*timeSinceLastFrame/1000);
+			if (ballY + (ballVelocityY*timeSinceLastFrame/1000) * timeScale  - ballSize < this.getHeight()) {
+				ballVelocityY += (gravity*timeSinceLastFrame/1000);
+				ballY += (ballVelocityY*timeSinceLastFrame/1000) * timeScale;
+				
+			} 
 			
-			ballX += (ballVelocityX*timeSinceLastFrame/1000);
-			ballY += (ballVelocityY*timeSinceLastFrame/1000);
+			// TODO: fixa bugg om bollen trillar under kanten mitt i ett steg.
 			
+//			for (Obstacle obs : obstacles) {
+//				if (obs.getShape().intersects(ballX, ballY, ballSize, ballSize)) {
+//					System.out.println("Collision?");
+//					
+////					try {
+////						Thread.sleep(2000);
+////						timer = System.currentTimeMillis();
+////						System.out.println(timer);
+////					} catch (InterruptedException e) {
+////						// TODO Auto-generated catch block
+////						e.printStackTrace();
+////					}
+//				}
+//			}
 			
 //			System.out.println(timeSinceLastFrame+"ms");
-//			paintComponent(getGraphics());
-			revalidate();
-			repaint();
+			ballX += (ballVelocityX*timeSinceLastFrame/1000) * timeScale;
 			
 			if (ballX > this.getWidth()-ballSize || ballX < 0) {
 				if (ballX > ballSize) {
@@ -180,17 +206,22 @@ class MyPanel extends JPanel implements Runnable{
 				System.out.println(System.currentTimeMillis() - startTime +"ms");
 			}
 			if (ballY > this.getHeight()-ballSize) {
+				System.out.println(ballVelocityY + "mm/s");
 				ballVelocityY *= -studsKoeff;
 				ballY = this.getHeight()-ballSize;
+				
 			}
 			try {
 				accumulator += timeSinceLastFrame;
-				if (accumulator > 1000){
+				if (accumulator >= 1000){
 					System.out.println(fps +" | "+ timeSinceLastFrame);
-					accumulator = 0;
+					accumulator -= 1000;
 					fps=0;
 				}
-				Thread.sleep(1); // lag simulering, om tid mellan rutor är < 1 ms så blinkar grafiken
+				Thread.sleep(2); // lag simulering, om tid mellan rutor är < 1 ms så blinkar grafiken
+				
+				revalidate();
+				repaint();
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
