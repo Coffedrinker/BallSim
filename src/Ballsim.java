@@ -1,20 +1,14 @@
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Polygon;
-import java.awt.Rectangle;
-import java.awt.Shape;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import javax.swing.*;
-
-import com.sun.xml.internal.bind.v2.schemagen.xmlschema.List;
 
 public class Ballsim {
 	
@@ -86,8 +80,7 @@ class Obstacle {
 		}
 		return new Polygon(listX, listY, 4);
 	}
-	
-	private int[] rotatePoint(int x, int y, double rot){
+	public int[] rotatePoint(int x, int y, double rot){
 		int[] coords = {0,0};
 		double h = Math.sqrt(x*x+y*y);
 		double ang = Math.asin(y/h);
@@ -102,6 +95,12 @@ class Obstacle {
 		this.rotation = _rotation;
 		this.shape = makeShape();
 	}
+	public int getWidth(){
+		return width;
+	}
+	public int getHeight(){
+		return height;
+	}
 	public int getPosX() {
 		return posX;
 	}
@@ -113,112 +112,195 @@ class Obstacle {
 	public void setPosY(int posY) {
 		this.posY = posY;
 	}
+	public boolean[] getRelativePositionOf(Ball b){		
+		boolean north = (int) (b.getPosY() + b.getSize()) <= (int) this.posY;
+		boolean south = (int) b.getPosY() > (int) (this.posY + this.height);
+		boolean west = (int) (b.getPosX() + b.getSize()) < (int) this.posX;
+		boolean east = (int) b.getPosX() > (int) (this.posX + this.width);
+		
+		boolean[] direction = {north,south,west,east};
+		return direction;
+	}
 }
+
+class Ball {
+	private float posX, posY, velocityX, velocityY, forceX, forceY;
+	private int size;
+	
+	public Ball() {
+		this.posX = 0;
+		this.posY = 0;
+		this.size = 20;
+		this.velocityX = 100;
+		this.velocityY = 0;
+	}
+	public Ball(float _posX, float _posY, int _size, float _velocityX, float _velocityY){
+		this.posX = _posX;
+		this.posY = _posY;
+		this.size = _size;
+		this.velocityX = _velocityX;
+		this.velocityY = _velocityY;
+		
+	}
+	
+	public float getPosX() {
+		return posX;
+	}
+	public void setPosX(float posX) {
+		this.posX = posX;
+	}
+	public float getPosY() {
+		return posY;
+	}
+	public void setPosY(float posY) {
+		this.posY = posY;
+	}
+	public int getSize(){
+		return size;
+	}
+	public float getVelocityX() {
+		return velocityX;
+	}
+	public void setVelocityX(float velocityX) {
+		this.velocityX = velocityX;
+	}
+	public float getVelocityY() {
+		return velocityY;
+	}
+	public void setVelocityY(float velocityY) {
+		this.velocityY = velocityY;
+	}
+	public float getForceX() {
+		return forceX;
+	}
+	public void setForceX(float forceX) {
+		this.forceX = forceX;
+	}
+	public float getForceY() {
+		return forceY;
+	}
+	public void setForceY(float forceY) {
+		this.forceY = forceY;
+	}
+}
+
 class MyPanel extends JPanel implements Runnable{
 	//1000f = 1m
-	float ballX, ballY = 10f;
-	float ballVelocityX = 100f;
-	float ballVelocityY = 0;
+//	float ballX = 1f; 
+//	float ballY = 1f;
+//	float ballVelocityX = 100f;
+//	float ballVelocityY = 0f;
+//	int ballSize = 20;
 	float gravity = 9800f;
-	float studsKoeff = 0.4f;
-	float timeScale = 1f;
+	float studsKoeff = -0.4f;
+	float timeScale = 0.2f;
 	
 	long timer, timeSinceLastFrame, startTime;
 	int fps, accumulator = 0;
-	int ballSize = 20;
+	
 	private boolean running = true;
-	Obstacle[] obstacles = new Obstacle[2];
-			
+	
+	ArrayList<Obstacle> obstacles = new ArrayList<Obstacle>();
+	Ball ball;		
+	
 	public MyPanel(){
 		setMinimumSize(new Dimension(250, 250));
 		setBackground(Color.WHITE);
 		
-		obstacles[0] = new Obstacle(0, 100, 60, 20, 30);
-		obstacles[1] = new Obstacle(0, 129, 80, 200, 0);
+		ball = new Ball();
+		
+		
 	}
 	
 	@Override
+	// XXX: Draw all objects
 	public void paintComponent(Graphics g){ 
 		super.paintComponent(g);
-//		System.out.println("Drawing");
 		
 		g.setColor(Color.BLUE);
 		for (Obstacle obstacle : obstacles) {
 			g.fillPolygon(obstacle.getShape());
-//			System.out.println(obstacle.getShape().xpoints + " | "+obstacle.getShape().ypoints);
 		}
 		g.setColor(Color.GRAY);
-//		g.fillOval((int) ballX, (int) ballY, ballSize, ballSize);
-		
-		g.fillArc((int) ballX, (int) ballY, ballSize, ballSize, 0, 360);
+		g.fillOval((int) ball.getPosX(), (int) ball.getPosY(), ball.getSize(), ball.getSize());
+		g.setColor(Color.RED);
+//		g.drawRect((int) (ball.getPosX() + ball.getVelocityX()* timeScale * timeSinceLastFrame / 1000),
+//				(int) (ball.getPosY() + ball.getVelocityY()* timeScale * timeSinceLastFrame / 1000),
+//						ball.getSize(),
+//						ball.getSize());
 		fps ++;
 	}
 	public synchronized void doStop(){
 		this.running = false;
 	}
 	public void run() {
-		// XXX: Physics thread
+		// XXX: Initialize world
 		startTime = System.currentTimeMillis();
 		timer = System.currentTimeMillis();
 		
-		timeSinceLastFrame = 1;
+		int north = 0, south = 1, west = 2, east = 3 ;
+		timeSinceLastFrame = 2;
 		
-		Point2D cp = new Point((int) ballX, (int) ballY); 
+		obstacles.add( new Obstacle(0, this.getHeight()+1, this.getWidth(), 500, 0));
+		obstacles.add( new Obstacle(this.getWidth()+1, 0, 20, this.getHeight(), 0));
+		obstacles.add( new Obstacle(-30, 0, 30, this.getHeight(), 0));
+		obstacles.add( new Obstacle(0, 129, 80, 200, 0));
+		obstacles.add( new Obstacle(0, 100, 100, 30, 30));
+		
+//		Point2D cp = new Point((int) ball.getPosX(), (int) ball.getPosY()); 
 		while(this.running) {
+			boolean collisionNorth = false;
 //			timeSinceLastFrame = System.currentTimeMillis() - timer;
 //			timer = System.currentTimeMillis();
 //			System.out.println(timer);
-			cp.setLocation((int) ballX + ballSize/2, (int) ballY + ballSize/2);
+//			cp.setLocation((int) ballX + ballSize/2, (int) ballY + ballSize/2);
 			
-			if (ballY + (ballVelocityY*timeSinceLastFrame/1000) * timeScale  - ballSize < this.getHeight()) {
-				ballVelocityY += (gravity*timeSinceLastFrame/1000);
-				ballY += (ballVelocityY*timeSinceLastFrame/1000) * timeScale;
-				
-			} 
-			
-			// TODO: fixa bugg om bollen trillar under kanten mitt i ett steg.
-			
-//			for (Obstacle obs : obstacles) {
-//				if (obs.getShape().intersects(ballX, ballY, ballSize, ballSize)) {
-//					System.out.println("Collision?");
-//					
-////					try {
-////						Thread.sleep(2000);
-////						timer = System.currentTimeMillis();
-////						System.out.println(timer);
-////					} catch (InterruptedException e) {
-////						// TODO Auto-generated catch block
-////						e.printStackTrace();
-////					}
-//				}
-//			}
-			
-//			System.out.println(timeSinceLastFrame+"ms");
-			ballX += (ballVelocityX*timeSinceLastFrame/1000) * timeScale;
-			
-			if (ballX > this.getWidth()-ballSize || ballX < 0) {
-				if (ballX > ballSize) {
-					ballX = this.getWidth() - ballSize;
-				} else {
-					ballX = 0f;
+			// XXX: Handle collisions
+			for (Obstacle obs : obstacles) { 
+				if (obs.getShape().intersects(
+						ball.getPosX() + ball.getVelocityX() * timeScale * timeSinceLastFrame / 1000,
+						ball.getPosY() + ball.getVelocityY() * timeScale * timeSinceLastFrame / 1000,
+						ball.getSize(),
+						ball.getSize())) {
+
+					boolean[] direction = obs.getRelativePositionOf(ball); 
+					
+					if (direction[north] && !direction[west] && !direction[east]) {
+						
+						collisionNorth = true;
+						ball.setPosY(obs.getPosY() - ball.getSize());
+						if (ball.getVelocityY() > gravity*timeScale*timeSinceLastFrame /1000) {
+							ball.setVelocityY(ball.getVelocityY() * studsKoeff);
+						}else{
+							ball.setVelocityY(0);
+						}
+					}
+					if (direction[west] && !direction[north] && !direction[south]) {
+						ball.setVelocityX(ball.getVelocityX() * studsKoeff);
+						ball.setPosX(obs.getPosX() - ball.getSize());
+					}
+					
 				}
-				ballVelocityX *= -1;
-				System.out.println(System.currentTimeMillis() - startTime +"ms");
 			}
-			if (ballY > this.getHeight()-ballSize) {
-				System.out.println(ballVelocityY + "mm/s");
-				ballVelocityY *= -studsKoeff;
-				ballY = this.getHeight()-ballSize;
-				
+			
+			// XXX: Handle movement
+			ball.setPosX(ball.getPosX() + ball.getVelocityX() * timeScale * timeSinceLastFrame / 1000);
+			if (!collisionNorth) {
+				ball.setVelocityY(ball.getVelocityY() + gravity * timeSinceLastFrame * timeScale / 1000);
 			}
+			ball.setPosY(ball.getPosY() + ball.getVelocityY()*timeScale*timeSinceLastFrame/1000);
+			
+			// XXX: Draw simulation and start next frame
 			try {
 				accumulator += timeSinceLastFrame;
 				if (accumulator >= 1000){
 					System.out.println(fps +" | "+ timeSinceLastFrame);
 					accumulator -= 1000;
 					fps=0;
+//					ball.setPosX(0);
+//					ball.setPosY(0);
 				}
-				Thread.sleep(2); // lag simulering, om tid mellan rutor är < 1 ms så blinkar grafiken
+				Thread.sleep(1); // lag simulering, om tid mellan rutor är < 1 ms så blinkar grafiken
 				
 				revalidate();
 				repaint();
