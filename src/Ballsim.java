@@ -11,14 +11,12 @@ public class Ballsim {
         JFrame frame = new JFrame("Hello world");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        JLabel label = new JLabel("Hello world!");
         MyPanel mainPanel = new MyPanel();
-        frame.getContentPane().add(label);
-        frame.setMinimumSize(new Dimension(300,1020));
-        frame.add(label);
+//        mainPanel.setSize(800, 1000);
         frame.add(mainPanel);
-//        frame.pack();
-        
+        frame.pack();
+        frame.revalidate();
+        frame.repaint();
         
         frame.setVisible(true);
         Thread physics = new Thread(mainPanel);
@@ -102,7 +100,8 @@ class Obstacle {
 	}
 	public void setPosX(int posX) {
 		this.posX = posX;
-	}	public int getPosY() {
+	}	
+	public int getPosY() {
 		return posY;
 	}
 	public void setPosY(int posY) {
@@ -128,7 +127,7 @@ class Obstacle {
 }
 
 class Ball {
-	private float posX, posY, velocityX, velocityY, forceX, forceY;
+	private double posX, posY, velocityX, velocityY, forceX, forceY;
 	private int size;
 	
 	public Ball() {
@@ -147,55 +146,55 @@ class Ball {
 		
 	}
 	
-	public float getPosX() {
+	public double getPosX() {
 		return posX;
 	}
-	public void setPosX(float posX) {
+	public void setPosX(double posX) {
 		this.posX = posX;
 	}
-	public float getPosY() {
+	public double getPosY() {
 		return posY;
 	}
-	public void setPosY(float posY) {
+	public void setPosY(double posY) {
 		this.posY = posY;
 	}
 	public int getSize(){
 		return size;
 	}
-	public float getVelocityX() {
+	public double getVelocityX() {
 		return velocityX;
 	}
-	public void setVelocityX(float velocityX) {
+	public void setVelocityX(double velocityX) {
 		this.velocityX = velocityX;
 	}
-	public float getVelocityY() {
+	public double getVelocityY() {
 		return velocityY;
 	}
-	public void setVelocityY(float velocityY) {
+	public void setVelocityY(double velocityY) {
 		this.velocityY = velocityY;
 	}
-	public float getForceX() {
+	public double getForceX() {
 		return forceX;
 	}
-	public void setForceX(float forceX) {
+	public void setForceX(double forceX) {
 		this.forceX = forceX;
 	}
-	public float getForceY() {
+	public double getForceY() {
 		return forceY;
 	}
-	public void setForceY(float forceY) {
+	public void setForceY(double forceY) {
 		this.forceY = forceY;
 	}
 }
 
 class MyPanel extends JPanel implements Runnable{
 	//1000f = 1m
-	float gravity = 9800f;
-	float studsKoeff = -1f;
-	float timeScale = 1f;
+	double gravity = 9800;
+//	double studsKoeff = 0.33; 
+	double timeScale = 1;
 	
-	long timer, timeSinceLastFrame, startTime;
-	int fps, accumulator = 0;
+	double timeSinceLastFrame = 0.001d, startTime, accumulator = 0;
+	int fps;
 	
 	private boolean running = true;
 	
@@ -203,12 +202,11 @@ class MyPanel extends JPanel implements Runnable{
 	private Ball ball;		
 	
 	public MyPanel(){
-		setMinimumSize(new Dimension(250, 250));
+		this.setPreferredSize(new Dimension(800, 630));
 		setBackground(Color.WHITE);
 		
-		ball = new Ball();
 		
-		
+
 	}
 	
 	@Override
@@ -223,116 +221,143 @@ class MyPanel extends JPanel implements Runnable{
 		g.setColor(Color.GRAY);
 		g.fillOval((int) ball.getPosX(), (int) ball.getPosY(), ball.getSize(), ball.getSize());
 		g.setColor(Color.RED);
-//		g.drawRect((int) (ball.getPosX() + ball.getVelocityX()* timeScale * timeSinceLastFrame / 1000),
-//				(int) (ball.getPosY() + ball.getVelocityY()* timeScale * timeSinceLastFrame / 1000),
-//						ball.getSize(),
-//						ball.getSize());
-		g.drawLine((int) ball.getPosX(), (int) ball.getPosY(),(int)  ball.getPosX() + (int) ball.getVelocityX(), (int) ball.getVelocityY());
+
+		//Accelerationslinje
+//		g.drawLine((int) ball.getPosX(), (int) ball.getPosY(),(int)  (ball.getPosX() + ball.getVelocityX()*timeSinceLastFrame), (int) (ball.getPosY() + ball.getVelocityY()*timeSinceLastFrame));
+		
 		fps ++;
 	}
 	public synchronized void doStop(){
 		this.running = false;
 	}
+
 	// Beräkna skärande punkt hos 2 linjer utifrån 2 punkter från dessa linjer
+	// Beräknar bollens nya vektor
 	// a -> b och c -> d
-	// TODO: Byt namn!
-	public double[] getIntersectingPoint(double ax, double ay, double bx, double by, double cx, double cy, double dx, double dy){
+	public double[] calculateCollision(double ax, double ay, double bx, double by, double cx, double cy, double dx, double dy){
 		double fakAToB = (by-ay)/(bx-ax);
 		double fakCToD = (dy-cy)/(dx-cx);
 		
 		double konstAToB = ay-fakAToB*ax;
 		double konstCToD = cy-fakCToD*cx;
 		
-		double pointX = (konstCToD-konstAToB)/(fakAToB-fakCToD); // ?!
 		
+		double pointX = (konstCToD-konstAToB)/(fakAToB-fakCToD);
+		
+		if (dx == cx || bx == ax) {
+			pointX = cx;
+		}
 		// Räta linjens ekvation f= k*x + m
+		
+		System.out.println("Infallsvinkel: " + Math.toDegrees(Math.atan(fakCToD)));
 		double pointY = fakAToB*pointX + konstAToB;
-				
 		double newAngle = Math.atan(fakAToB) - Math.atan(fakCToD);
 		double origLength = Math.sqrt((dx-cx)*(dx-cx)+(dy-cy)*(dy-cy));
-//		double clipLength = origLength - Math.sqrt((pointX-cy)*(pointX-cy)+(pointY-cy)*(pointY-cy));
-
+		
 		double newPointX = pointX + origLength * Math.cos(newAngle);
 		double newPointY = pointY + origLength * Math.sin(newAngle);
-		double newVelocityX = origLength * Math.cos(newAngle);
-		double newVelocityY = origLength * Math.sin(newAngle);
+		double newVelocityX = origLength * Math.cos(newAngle) * 0.75;
+		double newVelocityY = origLength * Math.sin(newAngle) * 0.33;
 		return new double[] {newPointX,newPointY,newVelocityX, newVelocityY};
 	}
 	
 	public void run() {
 		// XXX: Initialize world
 		startTime = System.currentTimeMillis();
-		timer = System.currentTimeMillis();
-		timeSinceLastFrame = 2;
+		
 		
 		int north = 0, south = 1, west = 2, east = 3 ;
 		boolean collisionNorth;
 		double[] newPosAndAngle;
 		boolean[] direction;
+
 		
-		obstacles.add( new Obstacle(0, this.getHeight()+1, this.getWidth(), 500, 0));
-		obstacles.add( new Obstacle(this.getWidth()+1, 0, 20, this.getHeight(), 0));
-		obstacles.add( new Obstacle(-30, 0, 30, this.getHeight(), 0));
-//		obstacles.add( new Obstacle(0, 129, 80, 200, 0));
+		// XXX: Set up scene
+		ball = new Ball(0,-35,35,1010,0);
+		
+		obstacles.add( new Obstacle(0, this.getHeight()-2, this.getWidth(), 500, 0));
+		obstacles.add( new Obstacle(this.getWidth()+1, 0, 500, this.getHeight(), 0));
+//		obstacles.add( new Obstacle(-30, 0, 30, this.getHeight(), 0));
 		obstacles.add( new Obstacle(0, 130, 150, 30, 30));
 		
-		
-//		Point2D cp = new Point((int) ball.getPosX(), (int) ball.getPosY()); 
+		System.out.println(this.getHeight());
+		revalidate();
+		repaint();
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e1) {
+			e1.printStackTrace();
+		}
 		while(this.running) {
-//			timeSinceLastFrame = System.currentTimeMillis() - timer;
-//			timer = System.currentTimeMillis();
-//			System.out.println(timer);
-//			cp.setLocation((int) ballX + ballSize/2, (int) ballY + ballSize/2);
-			
 			collisionNorth = false;
+			
+			
 			// XXX: Handle collisions
 			for (Obstacle obs : obstacles) { 
 				if (obs.getShape().intersects(
-						ball.getPosX() + ball.getVelocityX() * timeScale * timeSinceLastFrame / 1000,
-						ball.getPosY() + ball.getVelocityY() * timeScale * timeSinceLastFrame / 1000,
+						ball.getPosX() + ball.getVelocityX() * timeScale * timeSinceLastFrame,
+						ball.getPosY() + ball.getVelocityY() * timeScale * timeSinceLastFrame,
 						ball.getSize(),
 						ball.getSize())) {
 					
 					direction = obs.getRelativePositionOf(ball); 
 					if (direction[north] && !direction[west] && !direction[east]) {
-						newPosAndAngle = getIntersectingPoint(
+						newPosAndAngle = calculateCollision(
 								obs.getPoints()[0][0], 
 								obs.getPoints()[1][0], 
 								obs.getPoints()[0][1], 
 								obs.getPoints()[1][1], 
 								ball.getPosX() , 
 								ball.getPosY() + ball.getSize(),
-								ball.getPosX() + ball.getVelocityX() * timeScale * timeSinceLastFrame /1000, 
-								ball.getPosY() + ball.getSize() + ball.getVelocityY() * timeScale * timeSinceLastFrame /1000);
-						System.out.println(ball.getVelocityY() + "mm/s");
-						collisionNorth = true;
+								ball.getPosX() + ball.getVelocityX() * timeScale * timeSinceLastFrame, 
+								ball.getPosY() + ball.getSize() + ball.getVelocityY() * timeScale * timeSinceLastFrame);
+						System.out.println(ball.getVelocityX() + "mm/s xled"); 
+						System.out.println(ball.getVelocityY() + "mm/s yled");
+						System.out.println("x: " + ball.getPosX() + " | y: " + (int) (ball.getPosY()- this.getHeight()));
+//						if (collisionNorth) {
+//							ball.setPosX((int) newPosAndAngle[0]);
+//							ball.setPosY((int) newPosAndAngle[1] - ball.getSize());
+//							ball.setVelocityY(0);
+//						}else{
+//							ball.setPosX((int) newPosAndAngle[0]);
+//							ball.setPosY((int) newPosAndAngle[1] - ball.getSize());
+//							ball.setVelocityX(newPosAndAngle[2]/(timeScale * timeSinceLastFrame));
+//							ball.setVelocityY(newPosAndAngle[3]/(timeScale * timeSinceLastFrame));
+//						}
 						ball.setPosX((int) newPosAndAngle[0]);
 						ball.setPosY((int) newPosAndAngle[1] - ball.getSize());
+						ball.setVelocityX(newPosAndAngle[2]/(timeScale * timeSinceLastFrame));
+						ball.setVelocityY(newPosAndAngle[3]/(timeScale * timeSinceLastFrame));
 						
-						ball.setVelocityX((int) newPosAndAngle[2]/(timeScale * timeSinceLastFrame / 1000));
-						ball.setVelocityY((int) newPosAndAngle[3]/(timeScale * timeSinceLastFrame / 1000));
+						if (Math.abs(ball.getVelocityY()) < 50) {
+							ball.setVelocityY(0);
+						}
+						collisionNorth = true;
 					}
 					if (direction[west] && !direction[north] && !direction[south]) {
-						ball.setVelocityX(ball.getVelocityX() * studsKoeff);
+						ball.setVelocityX(ball.getVelocityX()  * -1);
 						ball.setPosX(obs.getPosX() - ball.getSize());
 					}
 					
 				}
+				
+				//XXX: end of collision check
 			}
 			
 			// XXX: Handle movement
-			ball.setPosX(ball.getPosX() + ball.getVelocityX() * timeScale * timeSinceLastFrame / 1000);
-			if (!collisionNorth) {
-				ball.setVelocityY(ball.getVelocityY() + gravity * timeSinceLastFrame * timeScale / 1000);
+			
+			ball.setPosX(ball.getPosX() + ball.getVelocityX() * timeScale * timeSinceLastFrame);
+			if (collisionNorth == false) {
+				ball.setVelocityY(ball.getVelocityY() + gravity * timeSinceLastFrame * timeScale);
 			}
-			ball.setPosY(ball.getPosY() + ball.getVelocityY()*timeScale*timeSinceLastFrame/1000);
+			ball.setPosY(ball.getPosY() + ball.getVelocityY() * timeSinceLastFrame);
 			
 			// XXX: Draw simulation and start next frame
 			accumulator += timeSinceLastFrame * timeScale;
-			if (accumulator >= 1000){
-				System.out.println(fps +" | "+ timeSinceLastFrame);
-				accumulator -= 1000;
-				fps=0;
+			
+			if (accumulator >= 1){
+				accumulator -= 1;
+				
 				System.out.println(ball.getVelocityY() + "mm/s");
 //				ball.setPosX(0);
 //				ball.setPosY(0);
@@ -340,7 +365,7 @@ class MyPanel extends JPanel implements Runnable{
 			revalidate();
 			repaint();
 			try {
-				Thread.sleep(2); 
+				Thread.sleep(8); 
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
